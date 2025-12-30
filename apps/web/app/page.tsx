@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { LanguageSwitcher } from "@/components/language-switcher";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const t = await getTranslations("landing");
 

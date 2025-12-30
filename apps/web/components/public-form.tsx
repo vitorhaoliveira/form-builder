@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/lib/i18n-context";
 import { Button } from "@form-builder/ui/components/button";
 import { Input } from "@form-builder/ui/components/input";
 import { Label } from "@form-builder/ui/components/label";

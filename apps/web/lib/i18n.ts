@@ -1,21 +1,40 @@
-import { defaultLocale } from "@/i18n/config";
+import { defaultLocale, type Locale } from "@/i18n/config";
+import { cookies } from "next/headers";
 
-type Messages = Record<string, any>;
+export type Messages = Record<string, any>;
 
-let cachedMessages: Messages | null = null;
+const messageCache: Record<Locale, Messages | null> = {
+  pt: null,
+  en: null,
+};
 
-export async function getMessages(): Promise<Messages> {
-  if (cachedMessages) {
-    return cachedMessages;
+async function getLocaleFromCookie(): Promise<Locale> {
+  try {
+    const cookieStore = await cookies();
+    const localeCookie = cookieStore.get("NEXT_LOCALE")?.value;
+    const locale = (localeCookie === "pt" || localeCookie === "en" ? localeCookie : defaultLocale) as Locale;
+    return locale;
+  } catch (error) {
+    // If cookies() fails, return default locale
+    return defaultLocale;
+  }
+}
+
+export async function getMessages(locale?: Locale): Promise<Messages> {
+  const targetLocale = locale || (await getLocaleFromCookie());
+  
+  if (messageCache[targetLocale]) {
+    return messageCache[targetLocale]!;
   }
   
-  const messages = (await import(`@/messages/${defaultLocale}.json`)).default;
-  cachedMessages = messages;
+  const messages = (await import(`@/messages/${targetLocale}.json`)).default;
+  messageCache[targetLocale] = messages;
   return messages;
 }
 
 export async function getTranslations(namespace?: string) {
-  const messages = await getMessages();
+  const locale = await getLocaleFromCookie();
+  const messages = await getMessages(locale);
   
   return (key: string): string => {
     if (namespace) {

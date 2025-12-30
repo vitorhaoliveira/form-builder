@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/lib/i18n-context";
 import { Button } from "@form-builder/ui/components/button";
 import { Input } from "@form-builder/ui/components/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@form-builder/ui/components/card";

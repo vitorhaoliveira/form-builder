@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/lib/i18n-context";
 import { Button } from "@form-builder/ui/components/button";
 import {
   DropdownMenu,

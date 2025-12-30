@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import { NextIntlClientProvider } from "next-intl";
+import { I18nProvider } from "@/lib/i18n-context";
 import { defaultLocale } from "@/i18n/config";
+import { cookies } from "next/headers";
 import "./globals.css";
 import { Toaster } from "@/components/toaster";
 
@@ -32,18 +33,23 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Load messages directly without middleware
-  const messages = (await import(`@/messages/${defaultLocale}.json`)).default;
+  // Get locale from cookie or use default
+  const cookieStore = await cookies();
+  const localeCookie = cookieStore.get("NEXT_LOCALE")?.value;
+  const locale = (localeCookie === "pt" || localeCookie === "en" ? localeCookie : defaultLocale) as typeof defaultLocale;
+  
+  // Load messages for the locale
+  const messages = (await import(`@/messages/${locale}.json`)).default;
 
   return (
-    <html lang={defaultLocale} className="dark">
+    <html lang={locale} className="dark">
       <body
         className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased min-h-screen bg-gradient-radial`}
       >
-        <NextIntlClientProvider messages={messages} locale={defaultLocale}>
+        <I18nProvider initialLocale={locale} initialMessages={messages}>
           {children}
           <Toaster />
-        </NextIntlClientProvider>
+        </I18nProvider>
       </body>
     </html>
   );
