@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+// Temporarily disable middleware to debug MIDDLEWARE_INVOCATION_FAILED error
+// Set to false to re-enable middleware
+const MIDDLEWARE_ENABLED = false;
+
 export async function middleware(request: NextRequest) {
+  // If middleware is disabled, allow all requests
+  if (!MIDDLEWARE_ENABLED) {
+    return NextResponse.next();
+  }
+
   const pathname = request.nextUrl.pathname;
   
   // Early return for static assets and API routes
@@ -21,18 +30,15 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    // Try to get token - use dynamic import to avoid initialization issues
+    // In NextAuth v5, use auth() function directly
     let isLoggedIn = false;
     try {
-      const { getToken } = await import("next-auth/jwt");
-      const token = await getToken({
-        req: request,
-        secret: process.env.AUTH_SECRET,
-      });
-      isLoggedIn = !!token;
-    } catch (tokenError) {
-      // If token check fails, assume not logged in
-      console.warn("Token check failed:", tokenError);
+      const { auth } = await import("@/lib/auth");
+      const session = await auth();
+      isLoggedIn = !!session?.user;
+    } catch (authError) {
+      // If auth check fails, assume not logged in
+      console.warn("Auth check failed:", authError);
       isLoggedIn = false;
     }
 
