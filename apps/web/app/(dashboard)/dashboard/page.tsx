@@ -121,7 +121,7 @@ export default async function DashboardPage() {
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {recentForms.map((form) => (
+            {recentForms.map((form: (typeof recentForms)[number]) => (
               <Link key={form.id} href={`/dashboard/forms/${form.id}`}>
                 <Card className="cursor-pointer">
                   <CardHeader>
