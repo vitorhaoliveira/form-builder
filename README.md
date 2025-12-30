@@ -81,10 +81,12 @@ AUTH_RESEND_KEY="re_xxxxxxxxxxxx"
 EMAIL_FROM="Form Builder <noreply@yourdomain.com>"
 ```
 
-**⚠️ Importante para Deploy:**
+**⚠️ Importante para Deploy no Vercel:**
 - Para gerar `AUTH_SECRET`: `openssl rand -base64 32`
-- No Vercel/ambiente de produção, configure todas as variáveis de ambiente listadas acima
-- Sem essas variáveis, o build falhará com erro relacionado ao NextAuth
+- Configure todas as variáveis no dashboard do Vercel (Project Settings > Environment Variables)
+- Variáveis obrigatórias: `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL`
+- Variáveis opcionais: `AUTH_RESEND_KEY`, `EMAIL_FROM`
+- O build falhará se as variáveis obrigatórias não estiverem configuradas
 
 ### 3. Configure o banco de dados
 

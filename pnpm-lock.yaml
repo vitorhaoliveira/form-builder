@@ -62,6 +62,9 @@ importers:
       react-hook-form:
         specifier: ^7.54.2
         version: 7.69.0(react@18.3.1)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
       zod:
         specifier: ^3.24.1
         version: 3.25.76
@@ -93,9 +96,6 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.19(tsx@4.21.0))
-      typescript:
-        specifier: ^5.7.2
-        version: 5.9.3
 
   packages/config:
     devDependencies:
