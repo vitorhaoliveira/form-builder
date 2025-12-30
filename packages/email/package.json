@@ -13,14 +13,14 @@
   },
   "dependencies": {
     "@react-email/components": "^0.0.31",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.17",
+    "@types/react-dom": "^18.3.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "resend": "^4.0.1"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
-    "@types/react": "^18.3.17",
-    "@types/react-dom": "^18.3.5",
     "react-email": "^3.0.4",
     "typescript": "^5.7.2"
   }
