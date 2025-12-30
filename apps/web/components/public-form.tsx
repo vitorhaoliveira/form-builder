@@ -216,9 +216,9 @@ export function PublicForm({ form }: PublicFormProps) {
                   {field.type === "select" && field.options && (
                     <RadioGroup
                       value={values[field.id] || ""}
-                      onValueChange={(value) => handleChange(field.id, value)}
+                      onValueChange={(value: string) => handleChange(field.id, value)}
                     >
-                      {field.options.map((option) => (
+                      {field.options.map((option: string) => (
                         <div key={option} className="flex items-center space-x-2">
                           <RadioGroupItem value={option} id={`${field.id}-${option}`} />
                           <Label
@@ -237,7 +237,7 @@ export function PublicForm({ form }: PublicFormProps) {
                       <Checkbox
                         id={field.id}
                         checked={values[field.id] === "true"}
-                        onCheckedChange={(checked) =>
+                        onCheckedChange={(checked: boolean) =>
                           handleChange(field.id, checked ? "true" : "false")
                         }
                       />

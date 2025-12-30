@@ -488,7 +488,7 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
               <Label>{t("fieldType")}</Label>
               <Select
                 value={newField.type}
-                onValueChange={(value) =>
+                onValueChange={(value: string) =>
                   setNewField({ ...newField, type: value as FieldType })
                 }
               >
