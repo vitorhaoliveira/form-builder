@@ -12,12 +12,14 @@ import {
   Text,
 } from "@react-email/components";
 
+import type { ReactElement } from "react";
+
 interface MagicLinkEmailProps {
   url: string;
   host: string;
 }
 
-export function MagicLinkEmail({ url, host }: MagicLinkEmailProps) {
+export function MagicLinkEmail({ url, host }: MagicLinkEmailProps): ReactElement {
   return (
     <Html>
       <Head />

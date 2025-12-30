@@ -14,6 +14,8 @@ import {
   Text,
 } from "@react-email/components";
 
+import type { ReactElement } from "react";
+
 interface NewResponseEmailProps {
   formName: string;
   formUrl: string;
@@ -26,7 +28,7 @@ export function NewResponseEmail({
   formUrl,
   responseCount,
   submittedAt,
-}: NewResponseEmailProps) {
+}: NewResponseEmailProps): ReactElement {
   return (
     <Html>
       <Head />
