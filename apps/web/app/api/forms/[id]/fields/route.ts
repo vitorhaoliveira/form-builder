@@ -40,7 +40,7 @@ export async function POST(
     const body = await request.json();
     const validatedData = createFieldSchema.parse(body);
 
-    const maxOrder = form.fields.reduce((max, f) => Math.max(max, f.order), -1);
+    const maxOrder = form.fields.reduce((max: number, f) => Math.max(max, f.order), -1);
 
     const field = await prisma.field.create({
       data: {
