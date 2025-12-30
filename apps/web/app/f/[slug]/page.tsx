@@ -43,7 +43,13 @@ export default async function PublicFormPage({ params }: PublicFormPageProps) {
   const transformedForm = {
     ...form,
     fields: form.fields.map((field) => ({
-      ...field,
+      id: field.id,
+      type: field.type,
+      label: field.label,
+      placeholder: field.placeholder,
+      required: field.required,
+      order: field.order,
+      formId: field.formId,
       options: Array.isArray(field.options) 
         ? (field.options as string[])
         : null,
