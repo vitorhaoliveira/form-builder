@@ -116,7 +116,7 @@ export async function POST(
     const values = sanitizeFormValues(rawValues);
     
     // Obtém os IDs válidos dos campos do formulário
-    const validFieldIds = new Set(form.fields.map((f) => f.id));
+    const validFieldIds = new Set(form.fields.map((f: (typeof form.fields)[number]) => f.id));
 
     // Validate required fields and field types
     for (const field of form.fields) {
@@ -152,8 +152,8 @@ export async function POST(
         formId: id,
         fieldValues: {
           create: Object.entries(values)
-            .filter(([fieldId, value]) => value && validFieldIds.has(fieldId))
-            .map(([fieldId, value]) => ({
+            .filter(([fieldId, value]: [string, string]) => value && validFieldIds.has(fieldId))
+            .map(([fieldId, value]: [string, string]) => ({
               fieldId,
               value: String(value),
             })),

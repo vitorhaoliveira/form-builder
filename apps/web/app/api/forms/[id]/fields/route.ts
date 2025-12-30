@@ -40,7 +40,7 @@ export async function POST(
     const body = await request.json();
     const validatedData = createFieldSchema.parse(body);
 
-    const maxOrder = form.fields.reduce((max: number, f) => Math.max(max, f.order), -1);
+    const maxOrder = form.fields.reduce((max: number, f: (typeof form.fields)[number]) => Math.max(max, f.order), -1);
 
     const field = await prisma.field.create({
       data: {
@@ -88,7 +88,7 @@ export async function PUT(
 
     // Update field orders
     await prisma.$transaction(
-      fields.map((field) =>
+      fields.map((field: { id: string; order: number }) =>
         prisma.field.update({
           where: { id: field.id },
           data: { order: field.order },
