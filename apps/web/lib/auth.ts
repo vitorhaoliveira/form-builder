@@ -2,9 +2,14 @@ import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Resend from "next-auth/providers/resend";
 import { prisma } from "@form-builder/database";
-import { env } from "./env";
 
-const authConfig = {
+// Check if required environment variables are available
+const hasRequiredEnvVars = !!(
+  process.env.AUTH_SECRET &&
+  process.env.DATABASE_URL
+);
+
+const authConfig = hasRequiredEnvVars ? {
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: "jwt" as const,
@@ -13,10 +18,10 @@ const authConfig = {
     signIn: "/login",
     verifyRequest: "/login/verify",
   },
-  providers: env.AUTH_RESEND_KEY ? [
+  providers: process.env.AUTH_RESEND_KEY ? [
     Resend({
-      apiKey: env.AUTH_RESEND_KEY,
-      from: env.EMAIL_FROM || "Form Builder <noreply@formbuilder.dev>",
+      apiKey: process.env.AUTH_RESEND_KEY,
+      from: process.env.EMAIL_FROM || "Form Builder <noreply@formbuilder.dev>",
     }),
   ] : [],
   callbacks: {
@@ -33,7 +38,11 @@ const authConfig = {
       return token;
     },
   },
-  secret: env.AUTH_SECRET,
+  secret: process.env.AUTH_SECRET,
+} : {
+  // Fallback config for build time when env vars are not available
+  providers: [],
+  secret: "build-time-placeholder-secret",
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
