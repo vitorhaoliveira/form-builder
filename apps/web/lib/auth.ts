@@ -1,7 +1,10 @@
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Resend from "next-auth/providers/resend";
-import { prisma } from "@form-builder/database";
+
+// Check if we're in build mode (Next.js sets this during build)
+// During Vercel build, NEXT_PHASE is set to "phase-production-build"
+const isBuildTime = process.env.NEXT_PHASE === "phase-production-build";
 
 // Check if required environment variables are available
 const hasRequiredEnvVars = !!(
@@ -9,8 +12,25 @@ const hasRequiredEnvVars = !!(
   process.env.DATABASE_URL
 );
 
-const authConfig = hasRequiredEnvVars ? {
-  adapter: PrismaAdapter(prisma),
+// Lazy adapter initialization - only at runtime, never during build
+function getAdapter() {
+  // Skip adapter during build
+  if (isBuildTime || !hasRequiredEnvVars) {
+    return undefined;
+  }
+  
+  try {
+    // Dynamic require to avoid build-time initialization
+    const { prisma } = require("@form-builder/database");
+    return prisma ? PrismaAdapter(prisma) : undefined;
+  } catch (error) {
+    // Silently fail - adapter will be undefined (JWT strategy doesn't require it)
+    return undefined;
+  }
+}
+
+const authConfig = {
+  adapter: getAdapter(),
   session: {
     strategy: "jwt" as const,
   },
@@ -18,7 +38,7 @@ const authConfig = hasRequiredEnvVars ? {
     signIn: "/login",
     verifyRequest: "/login/verify",
   },
-  providers: process.env.AUTH_RESEND_KEY ? [
+  providers: hasRequiredEnvVars && process.env.AUTH_RESEND_KEY ? [
     Resend({
       apiKey: process.env.AUTH_RESEND_KEY,
       from: process.env.EMAIL_FROM || "Form Builder <noreply@formbuilder.dev>",
@@ -38,11 +58,7 @@ const authConfig = hasRequiredEnvVars ? {
       return token;
     },
   },
-  secret: process.env.AUTH_SECRET,
-} : {
-  // Fallback config for build time when env vars are not available
-  providers: [],
-  secret: "build-time-placeholder-secret",
+  secret: hasRequiredEnvVars ? process.env.AUTH_SECRET : "build-time-placeholder-secret",
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
