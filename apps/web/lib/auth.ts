@@ -3,11 +3,10 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import Resend from "next-auth/providers/resend";
 import { prisma } from "@form-builder/database";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const { handlers, signIn, signOut, auth } = NextAuth({
+const authConfig = {
   adapter: PrismaAdapter(prisma),
   session: {
-    strategy: "jwt",
+    strategy: "jwt" as const,
   },
   pages: {
     signIn: "/login",
@@ -19,17 +18,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async session({ session, token }) {
+    async session({ session, token }: { session: any; token: any }) {
       if (token.sub && session.user) {
         session.user.id = token.sub;
       }
       return session;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user }: { token: any; user: any }) {
       if (user) {
         token.sub = user.id;
       }
       return token;
     },
   },
-}) as any;
+  secret: process.env.AUTH_SECRET,
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const { handlers, signIn, signOut, auth } = NextAuth(authConfig) as any;
