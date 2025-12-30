@@ -71,6 +71,9 @@ importers:
       react-hook-form:
         specifier: ^7.54.2
         version: 7.69.0(react@18.3.1)
+      tailwindcss:
+        specifier: ^3.4.17
+        version: 3.4.19(tsx@4.21.0)
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
@@ -90,9 +93,6 @@ importers:
       postcss:
         specifier: ^8.4.49
         version: 8.5.6
-      tailwindcss:
-        specifier: ^3.4.17
-        version: 3.4.19(tsx@4.21.0)
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.19(tsx@4.21.0))
