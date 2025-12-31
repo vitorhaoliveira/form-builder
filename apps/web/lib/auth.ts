@@ -41,7 +41,7 @@ const authConfig = {
   providers: hasRequiredEnvVars && process.env.AUTH_RESEND_KEY ? [
     Resend({
       apiKey: process.env.AUTH_RESEND_KEY,
-      from: process.env.EMAIL_FROM || "submitin <noreply@submitin.dev>",
+      from: process.env.EMAIL_FROM || "Submitin <noreply@submitin.com>",
     }),
   ] : [],
   callbacks: {

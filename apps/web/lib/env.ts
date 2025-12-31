@@ -22,7 +22,7 @@ const env = (() => {
       AUTH_SECRET: process.env.AUTH_SECRET || "build-time-placeholder",
       AUTH_URL: process.env.AUTH_URL || "http://localhost:3000",
       AUTH_RESEND_KEY: process.env.AUTH_RESEND_KEY,
-      EMAIL_FROM: process.env.EMAIL_FROM,
+      EMAIL_FROM: process.env.EMAIL_FROM || "Submitin <noreply@submitin.com>",
       NODE_ENV: (process.env.NODE_ENV as "development" | "production" | "test") || "development",
     };
   }
