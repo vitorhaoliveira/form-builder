@@ -2,64 +2,54 @@ import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Resend from "next-auth/providers/resend";
 
-// Check if we're in build mode (Next.js sets this during build)
-// During Vercel build, NEXT_PHASE is set to "phase-production-build"
 const isBuildTime = process.env.NEXT_PHASE === "phase-production-build";
 
-// Check if required environment variables are available
-const hasRequiredEnvVars = !!(
-  process.env.AUTH_SECRET &&
-  process.env.DATABASE_URL
-);
+const hasAuthEnv = !!process.env.AUTH_SECRET;
+const hasDbEnv = !!process.env.DATABASE_URL;
+const hasResendEnv = !!(process.env.AUTH_RESEND_KEY && process.env.AUTH_EMAIL_FROM);
 
-// Lazy adapter initialization - only at runtime, never during build
 function getAdapter() {
-  // Skip adapter during build
-  if (isBuildTime || !hasRequiredEnvVars) {
-    return undefined;
-  }
-  
+  if (isBuildTime || !hasDbEnv) return undefined;
+
   try {
-    // Dynamic require to avoid build-time initialization
     const { prisma } = require("@submitin/database");
     return prisma ? PrismaAdapter(prisma) : undefined;
-  } catch (error) {
-    // Silently fail - adapter will be undefined (JWT strategy doesn't require it)
+  } catch {
     return undefined;
   }
 }
 
 const authConfig = {
   adapter: getAdapter(),
-  session: {
-    strategy: "jwt" as const,
-  },
+  session: { strategy: "jwt" as const },
   pages: {
     signIn: "/login",
     verifyRequest: "/login/verify",
   },
-  providers: hasRequiredEnvVars && process.env.AUTH_RESEND_KEY ? [
-    Resend({
-      apiKey: process.env.AUTH_RESEND_KEY,
-      from: process.env.EMAIL_FROM || "Submitin <noreply@submitin.com>",
-    }),
-  ] : [],
+
+  // ✅ Provider NÃO depende de DATABASE_URL
+  providers: hasResendEnv
+    ? [
+        Resend({
+          apiKey: process.env.AUTH_RESEND_KEY!,
+          from: process.env.AUTH_EMAIL_FROM!, // ex: "Submitin <no-reply@submitin.com>"
+        }),
+      ]
+    : [],
+
   callbacks: {
     async session({ session, token }: { session: any; token: any }) {
-      if (token.sub && session.user) {
-        session.user.id = token.sub;
-      }
+      if (token.sub && session.user) session.user.id = token.sub;
       return session;
     },
     async jwt({ token, user }: { token: any; user: any }) {
-      if (user) {
-        token.sub = user.id;
-      }
+      if (user) token.sub = user.id;
       return token;
     },
   },
-  secret: hasRequiredEnvVars ? process.env.AUTH_SECRET : "build-time-placeholder-secret",
+
+  // ✅ Secret sempre real em runtime, placeholder só em build
+  secret: hasAuthEnv ? process.env.AUTH_SECRET : "build-time-placeholder-secret",
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const { handlers, signIn, signOut, auth } = NextAuth(authConfig) as any;

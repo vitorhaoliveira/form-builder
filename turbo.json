@@ -10,7 +10,7 @@
         "DATABASE_URL",
         "AUTH_SECRET",
         "AUTH_RESEND_KEY",
-        "EMAIL_FROM",
+        "AUTH_EMAIL_FROM",
         "AUTH_URL",
         "NODE_ENV"
       ]

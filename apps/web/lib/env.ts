@@ -5,7 +5,7 @@ const envSchema = z.object({
   AUTH_SECRET: z.string().min(1, "AUTH_SECRET is required"),
   AUTH_URL: z.string().min(1, "AUTH_URL is required"),
   AUTH_RESEND_KEY: z.string().optional(),
-  EMAIL_FROM: z.string().optional(),
+  AUTH_EMAIL_FROM: z.string().optional(),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });
 
@@ -22,7 +22,7 @@ const env = (() => {
       AUTH_SECRET: process.env.AUTH_SECRET || "build-time-placeholder",
       AUTH_URL: process.env.AUTH_URL || "http://localhost:3000",
       AUTH_RESEND_KEY: process.env.AUTH_RESEND_KEY,
-      EMAIL_FROM: process.env.EMAIL_FROM || "Submitin <noreply@submitin.com>",
+      AUTH_EMAIL_FROM: process.env.AUTH_EMAIL_FROM || "Submitin <noreply@submitin.com>",
       NODE_ENV: (process.env.NODE_ENV as "development" | "production" | "test") || "development",
     };
   }
