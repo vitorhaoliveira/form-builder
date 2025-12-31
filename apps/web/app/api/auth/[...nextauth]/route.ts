@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+export const runtime = "nodejs";
 
 // Dynamic import to avoid build-time initialization issues
 async function getHandlers() {

@@ -1,11 +1,11 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
 // Configuração de logs baseada no ambiente
-const logConfig = process.env.NODE_ENV === "development" 
+const logConfig: Prisma.LogLevel[] = process.env.NODE_ENV === "development" 
   ? ["query", "error", "warn"] 
   : ["error"];
 
