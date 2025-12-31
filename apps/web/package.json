@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "prebuild": "pnpm --filter @submitin/database db:generate && node scripts/copy-prisma-engines.mjs",
+    "prebuild": "pnpm --filter @submitin/database db:generate && node scripts/copy-prisma-engines.mjs && ls -la prisma-engines | head -n 10",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

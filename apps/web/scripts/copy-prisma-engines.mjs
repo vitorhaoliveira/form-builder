@@ -69,7 +69,7 @@ if (src.endsWith("@prisma/client") && exists(neighborPrismaClient)) {
   src = neighborPrismaClient;
 }
 
-const dest = path.resolve(".prisma/client");
+const dest = path.resolve("prisma-engines");
 copyDir(src, dest);
 
 console.log("✅ Copied Prisma engines from:", src);
