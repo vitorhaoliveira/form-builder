@@ -38,9 +38,13 @@ if (!src) {
   process.exit(1);
 }
 
-// ⚠️ Importante: destino dentro do standalone bundle
-const dest = path.resolve(".next/standalone/apps/web/.prisma/client");
+// ... (encontra src)
+const dest1 = path.resolve(".prisma/client"); // ✅ runtime procura aqui: /var/task/apps/web/.prisma/client
+const dest2 = path.resolve(".next/standalone/apps/web/.prisma/client"); // ✅ mantém no standalone também
 
-copyDir(src, dest);
+copyDir(src, dest1);
+copyDir(src, dest2);
+
 console.log("✅ Copied Prisma engines from:", src);
-console.log("✅ Into:", dest);
+console.log("✅ Into (runtime path):", dest1);
+console.log("✅ Into (standalone):", dest2);
