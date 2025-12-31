@@ -109,7 +109,10 @@
     },
     "errors": {
       "invalidEmail": "Email inválido",
-      "sendFailed": "Falha ao enviar email. Tente novamente."
+      "sendFailed": "Falha ao enviar email. Tente novamente.",
+      "configuration": "Erro de configuração: Verifique se AUTH_RESEND_KEY e AUTH_EMAIL_FROM estão configurados corretamente.",
+      "accessDenied": "Acesso negado. Verifique suas permissões.",
+      "verification": "Erro ao verificar email. Tente novamente."
     }
   },
   "dashboard": {
