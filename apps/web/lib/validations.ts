@@ -1,13 +1,6 @@
 import { z } from "zod";
 
-export const fieldTypes = [
-  "text",
-  "email",
-  "number",
-  "date",
-  "select",
-  "checkbox",
-] as const;
+export const fieldTypes = ["text", "email", "number", "date", "select", "checkbox"] as const;
 
 export type FieldType = (typeof fieldTypes)[number];
 
@@ -35,11 +28,19 @@ export const createFieldSchema = z
     label: z.string().min(1, "Label é obrigatório").max(100, "Label muito longo"),
     placeholder: z.string().max(100, "Placeholder muito longo").optional(),
     required: z.boolean().default(false),
-    options: z.array(z.string()).optional(),
+    options: z
+      .array(z.string())
+      .optional()
+      .transform((opts) => {
+        // Filtra opções vazias ou que contêm apenas espaços
+        if (!opts) return undefined;
+        const filtered = opts.filter((opt) => opt.trim() !== "");
+        return filtered.length > 0 ? filtered : undefined;
+      }),
   })
   .refine(
     (data) => {
-      // Se for select, precisa ter pelo menos uma opção
+      // Se for select, precisa ter pelo menos uma opção válida
       if (data.type === "select") {
         return data.options && data.options.length > 0;
       }
@@ -51,9 +52,64 @@ export const createFieldSchema = z
     }
   );
 
+// ==========================================
+// CUSTOM THEME
+// ==========================================
+
+export const customThemeSchema = z.object({
+  primaryColor: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida")
+    .optional(),
+  backgroundColor: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida")
+    .optional(),
+  cardBackground: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida")
+    .optional(),
+  textColor: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida")
+    .optional(),
+  accentColor: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida")
+    .optional(),
+  borderRadius: z.enum(["none", "sm", "md", "lg", "xl", "full"]).optional(),
+});
+
+export type CustomTheme = z.infer<typeof customThemeSchema>;
+
+// ==========================================
+// FORM SETTINGS (inclui campos PRO)
+// ==========================================
+
+export const captchaProviders = ["turnstile", "hcaptcha"] as const;
+export type CaptchaProvider = (typeof captchaProviders)[number];
+
 export const formSettingsSchema = z.object({
+  // Notificações
   notifyEmail: z.string().email("Email inválido").optional().or(z.literal("")),
+  notifyEmails: z
+    .array(z.string().email("Email inválido"))
+    .max(10, "Máximo de 10 emails")
+    .optional()
+    .default([]),
   webhookUrl: z.string().url("URL inválida").optional().or(z.literal("")),
+
+  // PRO: Anti-spam / CAPTCHA
+  captchaEnabled: z.boolean().optional().default(false),
+  captchaProvider: z.enum(captchaProviders).optional().or(z.literal("")),
+  captchaSiteKey: z.string().max(100).optional().or(z.literal("")),
+  captchaSecretKey: z.string().max(100).optional().or(z.literal("")),
+
+  // PRO: Branding
+  hideBranding: z.boolean().optional().default(false),
+
+  // PRO: Custom Theme
+  customTheme: customThemeSchema.optional().nullable(),
 });
 
 export type CreateFormInput = z.infer<typeof createFormSchema>;
@@ -85,4 +141,3 @@ export const registerSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
-

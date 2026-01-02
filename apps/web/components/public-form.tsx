@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { useTranslations } from "@/lib/i18n-context";
 import { Button } from "@submitin/ui/components/button";
@@ -18,6 +18,8 @@ import {
 import { FileText, Loader2, CheckCircle, ArrowRight } from "lucide-react";
 import { cn } from "@submitin/ui/lib/utils";
 import { LanguageSwitcher } from "./language-switcher";
+import { Captcha, type CaptchaProvider } from "./captcha";
+import { generateThemeStyles, type CustomTheme } from "@/lib/theme-utils";
 
 interface Field {
   id: string;
@@ -28,11 +30,20 @@ interface Field {
   options: string[] | null;
 }
 
+interface FormSettings {
+  hideBranding?: boolean;
+  customTheme?: CustomTheme | null;
+  captchaEnabled?: boolean;
+  captchaProvider?: CaptchaProvider | null;
+  captchaSiteKey?: string | null;
+}
+
 interface Form {
   id: string;
   name: string;
   description: string | null;
   fields: Field[];
+  settings?: FormSettings | null;
 }
 
 interface PublicFormProps {
@@ -46,6 +57,19 @@ export function PublicForm({ form }: PublicFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState(false);
+
+  // Extrair configurações do formulário
+  const settings = form.settings;
+  const hideBranding = settings?.hideBranding ?? false;
+  const customTheme = settings?.customTheme ?? null;
+  const captchaEnabled = settings?.captchaEnabled ?? false;
+  const captchaProvider = settings?.captchaProvider ?? null;
+  const captchaSiteKey = settings?.captchaSiteKey ?? null;
+
+  // Gerar estilos do tema customizado
+  const themeStyles = generateThemeStyles(customTheme);
 
   function handleChange(fieldId: string, value: string) {
     setValues((prev) => ({ ...prev, [fieldId]: value }));
@@ -56,6 +80,28 @@ export function PublicForm({ form }: PublicFormProps) {
         return next;
       });
     }
+  }
+
+  function handleCaptchaVerify(token: string) {
+    setCaptchaToken(token);
+    setCaptchaError(false);
+    // Limpa erro de captcha se existir
+    if (errors._captcha) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next._captcha;
+        return next;
+      });
+    }
+  }
+
+  function handleCaptchaError() {
+    setCaptchaError(true);
+    setCaptchaToken(null);
+  }
+
+  function handleCaptchaExpire() {
+    setCaptchaToken(null);
   }
 
   function validate(): boolean {
@@ -75,6 +121,11 @@ export function PublicForm({ form }: PublicFormProps) {
       }
     }
 
+    // Validar CAPTCHA se habilitado
+    if (captchaEnabled && captchaSiteKey && captchaProvider && !captchaToken) {
+      newErrors._captcha = "Por favor, complete a verificação anti-spam";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
@@ -89,7 +140,10 @@ export function PublicForm({ form }: PublicFormProps) {
       const response = await fetch(`/api/forms/${form.id}/responses`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ values }),
+        body: JSON.stringify({
+          values,
+          captchaToken: captchaEnabled ? captchaToken : undefined,
+        }),
       });
 
       if (!response.ok) {
@@ -109,16 +163,14 @@ export function PublicForm({ form }: PublicFormProps) {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-radial" style={themeStyles}>
         <Card className="max-w-md w-full text-center animate-fade-in-up">
           <CardContent className="pt-12 pb-8">
             <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-8 h-8 text-emerald-500" />
             </div>
             <h2 className="text-2xl font-bold mb-2">{t("success.title")}</h2>
-            <p className="text-muted-foreground mb-8">
-              {t("success.subtitle")}
-            </p>
+            <p className="text-muted-foreground mb-8">{t("success.subtitle")}</p>
             <Button onClick={() => window.location.reload()} variant="outline">
               {t("success.another")}
             </Button>
@@ -129,20 +181,22 @@ export function PublicForm({ form }: PublicFormProps) {
   }
 
   return (
-    <div className="min-h-screen py-12 px-4">
+    <div className="min-h-screen py-12 px-4 bg-gradient-radial" style={themeStyles}>
       <div className="absolute top-4 right-4">
         <LanguageSwitcher />
       </div>
       <div className="max-w-2xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="text-center animate-fade-in-up">
-          <Link href="/" className="inline-flex items-center gap-2 mb-8">
-            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-              <FileText className="w-4 h-4 text-primary" />
-            </div>
-            <span className="font-semibold">{tCommon("appName")}</span>
-          </Link>
-        </div>
+        {/* Header - só mostra se branding não estiver escondido */}
+        {!hideBranding && (
+          <div className="text-center animate-fade-in-up">
+            <Link href="/" className="inline-flex items-center gap-2 mb-8">
+              <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                <FileText className="w-4 h-4 text-primary" />
+              </div>
+              <span className="font-semibold">{tCommon("appName")}</span>
+            </Link>
+          </div>
+        )}
 
         {/* Form */}
         <Card className="animate-fade-in-up animation-delay-100">
@@ -176,7 +230,9 @@ export function PublicForm({ form }: PublicFormProps) {
                       id={field.id}
                       placeholder={field.placeholder || undefined}
                       value={values[field.id] || ""}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(field.id, e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        handleChange(field.id, e.target.value)
+                      }
                       className={cn(errors[field.id] && "border-destructive")}
                     />
                   )}
@@ -187,7 +243,9 @@ export function PublicForm({ form }: PublicFormProps) {
                       type="email"
                       placeholder={field.placeholder || "your@email.com"}
                       value={values[field.id] || ""}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(field.id, e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        handleChange(field.id, e.target.value)
+                      }
                       className={cn(errors[field.id] && "border-destructive")}
                     />
                   )}
@@ -198,7 +256,9 @@ export function PublicForm({ form }: PublicFormProps) {
                       type="number"
                       placeholder={field.placeholder || undefined}
                       value={values[field.id] || ""}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(field.id, e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        handleChange(field.id, e.target.value)
+                      }
                       className={cn(errors[field.id] && "border-destructive")}
                     />
                   )}
@@ -208,7 +268,9 @@ export function PublicForm({ form }: PublicFormProps) {
                       id={field.id}
                       type="date"
                       value={values[field.id] || ""}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(field.id, e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        handleChange(field.id, e.target.value)
+                      }
                       className={cn(errors[field.id] && "border-destructive")}
                     />
                   )}
@@ -253,6 +315,26 @@ export function PublicForm({ form }: PublicFormProps) {
                 </div>
               ))}
 
+              {/* CAPTCHA */}
+              {captchaEnabled && captchaSiteKey && captchaProvider && (
+                <div className="space-y-2 animate-fade-in-up">
+                  <Captcha
+                    provider={captchaProvider}
+                    siteKey={captchaSiteKey}
+                    onVerify={handleCaptchaVerify}
+                    onError={handleCaptchaError}
+                    onExpire={handleCaptchaExpire}
+                    theme="dark"
+                  />
+                  {errors._captcha && <p className="text-sm text-destructive">{errors._captcha}</p>}
+                  {captchaError && (
+                    <p className="text-sm text-destructive">
+                      Erro ao carregar verificação. Por favor, recarregue a página.
+                    </p>
+                  )}
+                </div>
+              )}
+
               {errors._form && (
                 <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
                   <p className="text-sm text-destructive">{errors._form}</p>
@@ -263,7 +345,7 @@ export function PublicForm({ form }: PublicFormProps) {
                 type="submit"
                 className="w-full"
                 size="lg"
-                disabled={isSubmitting}
+                disabled={isSubmitting || (captchaEnabled && !captchaToken)}
               >
                 {isSubmitting ? (
                   <>
@@ -281,7 +363,7 @@ export function PublicForm({ form }: PublicFormProps) {
           </CardContent>
         </Card>
 
-        {/* Footer */}
+        {/* Footer - sempre visível */}
         <p className="text-center text-sm text-muted-foreground animate-fade-in-up animation-delay-200">
           {t("poweredBy")}{" "}
           <Link href="/" className="text-primary hover:underline">

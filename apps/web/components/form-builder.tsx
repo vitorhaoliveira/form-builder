@@ -56,11 +56,9 @@ import {
   Check,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import {
-  fieldTypes,
-  type FieldType,
-  type CreateFieldInput,
-} from "@/lib/validations";
+import { fieldTypes, type FieldType, type CreateFieldInput } from "@/lib/validations";
+import { ThemeEditor } from "./theme-editor";
+import { type CustomTheme } from "@/lib/theme-utils";
 
 interface Field {
   id: string;
@@ -75,7 +73,14 @@ interface Field {
 interface FormSettings {
   id: string;
   notifyEmail: string | null;
+  notifyEmails: string[];
   webhookUrl: string | null;
+  captchaEnabled: boolean;
+  captchaProvider: string | null;
+  captchaSiteKey: string | null;
+  captchaSecretKey: string | null;
+  hideBranding: boolean;
+  customTheme: CustomTheme | null;
 }
 
 interface Form {
@@ -121,8 +126,16 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
   });
   const [settings, setSettings] = useState({
     notifyEmail: initialForm.settings?.notifyEmail || "",
+    notifyEmails: initialForm.settings?.notifyEmails || [],
     webhookUrl: initialForm.settings?.webhookUrl || "",
+    captchaEnabled: initialForm.settings?.captchaEnabled || false,
+    captchaProvider: initialForm.settings?.captchaProvider || "",
+    captchaSiteKey: initialForm.settings?.captchaSiteKey || "",
+    captchaSecretKey: initialForm.settings?.captchaSecretKey || "",
+    hideBranding: initialForm.settings?.hideBranding || false,
+    customTheme: initialForm.settings?.customTheme || null,
   });
+  const [newEmail, setNewEmail] = useState("");
   const [showShare, setShowShare] = useState(false);
   const [embedSize, setEmbedSize] = useState<"small" | "medium" | "large">("medium");
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -204,10 +217,7 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
       return;
     }
 
-    if (
-      newField.type === "select" &&
-      (!newField.options || newField.options.length === 0)
-    ) {
+    if (newField.type === "select" && (!newField.options || newField.options.length === 0)) {
       toast({
         title: tCommon("error"),
         description: t("optionsRequired"),
@@ -218,13 +228,21 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
 
     setIsAddingField(true);
     try {
+      const fieldData = {
+        ...newField,
+        options: newField.type === "select" ? newField.options : undefined,
+      };
+
       const response = await fetch(`/api/forms/${form.id}/fields`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newField),
+        body: JSON.stringify(fieldData),
       });
 
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || t("fieldAddError"));
+      }
 
       const field = await response.json();
       setFields([...fields, field]);
@@ -237,10 +255,10 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
         options: [],
       });
       toast({ title: t("fieldAdded") });
-    } catch {
+    } catch (error) {
       toast({
         title: tCommon("error"),
-        description: t("fieldAddError"),
+        description: error instanceof Error ? error.message : t("fieldAddError"),
         variant: "destructive",
       });
     } finally {
@@ -252,20 +270,17 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
     if (!editingField) return;
 
     try {
-      const response = await fetch(
-        `/api/forms/${form.id}/fields/${editingField.id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: editingField.type,
-            label: editingField.label,
-            placeholder: editingField.placeholder,
-            required: editingField.required,
-            options: editingField.options,
-          }),
-        }
-      );
+      const response = await fetch(`/api/forms/${form.id}/fields/${editingField.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: editingField.type,
+          label: editingField.label,
+          placeholder: editingField.placeholder,
+          required: editingField.required,
+          options: editingField.options,
+        }),
+      });
 
       if (!response.ok) throw new Error();
 
@@ -336,16 +351,16 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
             <div className="flex items-center gap-2">
               <Input
                 value={form.name}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setForm({ ...form, name: e.target.value })
+                }
                 className="text-2xl font-bold h-auto p-0 border-0 bg-transparent focus-visible:ring-0"
               />
               <Badge variant={form.published ? "success" : "secondary"}>
                 {form.published ? t("status.published") : t("status.draft")}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground font-mono">
-              /f/{form.slug}
-            </p>
+            <p className="text-sm text-muted-foreground font-mono">/f/{form.slug}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -370,11 +385,7 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
             </Button>
           </Link>
           <Button onClick={handleSaveForm} disabled={isSaving} className="gap-2">
-            {isSaving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             <span className="hidden sm:inline">{tCommon("save")}</span>
           </Button>
         </div>
@@ -391,15 +402,15 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
             <Textarea
               placeholder={t("descriptionPlaceholder")}
               value={form.description || ""}
-              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setForm({ ...form, description: e.target.value })}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                setForm({ ...form, description: e.target.value })
+              }
             />
           </div>
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>{t("publishForm")}</Label>
-              <p className="text-sm text-muted-foreground">
-                {t("publishDesc")}
-              </p>
+              <p className="text-sm text-muted-foreground">{t("publishDesc")}</p>
             </div>
             <Switch
               checked={form.published}
@@ -489,7 +500,12 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
               <Select
                 value={newField.type}
                 onValueChange={(value: string) =>
-                  setNewField({ ...newField, type: value as FieldType })
+                  setNewField({
+                    ...newField,
+                    type: value as FieldType,
+                    options:
+                      value === "select" ? (newField.options?.length ? newField.options : []) : [],
+                  })
                 }
               >
                 <SelectTrigger>
@@ -512,7 +528,9 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
               <Input
                 placeholder={t("fieldNamePlaceholder")}
                 value={newField.label}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setNewField({ ...newField, label: e.target.value })}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setNewField({ ...newField, label: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
@@ -534,7 +552,7 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
                   onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
                     setNewField({
                       ...newField,
-                      options: e.target.value.split("\n").filter(Boolean),
+                      options: e.target.value.split("\n"),
                     })
                   }
                 />
@@ -556,11 +574,7 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
               {tCommon("cancel")}
             </Button>
             <Button onClick={handleAddField} disabled={isAddingField}>
-              {isAddingField ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                tCommon("add")
-              )}
+              {isAddingField ? <Loader2 className="w-4 h-4 animate-spin" /> : tCommon("add")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -603,7 +617,7 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
                     onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
                       setEditingField({
                         ...editingField,
-                        options: e.target.value.split("\n").filter(Boolean),
+                        options: e.target.value.split("\n"),
                       })
                     }
                   />
@@ -631,25 +645,104 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
 
       {/* Settings Dialog */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t("settingsTitle")}</DialogTitle>
             <DialogDescription>{t("settingsDesc")}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>{t("notifyEmail")}</Label>
-              <Input
-                type="email"
-                placeholder={t("notifyEmailPlaceholder")}
-                value={settings.notifyEmail}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setSettings({ ...settings, notifyEmail: e.target.value })
-                }
-              />
-              <p className="text-xs text-muted-foreground">{t("notifyEmailHelp")}</p>
+          <div className="space-y-6">
+            {/* Notificações */}
+            <div className="space-y-4">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                Notificações por Email
+              </h3>
+              <div className="space-y-2">
+                <Label>{t("notifyEmail")}</Label>
+                <Input
+                  type="email"
+                  placeholder={t("notifyEmailPlaceholder")}
+                  value={settings.notifyEmail}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setSettings({ ...settings, notifyEmail: e.target.value })
+                  }
+                />
+                <p className="text-xs text-muted-foreground">{t("notifyEmailHelp")}</p>
+              </div>
+
+              {/* Múltiplos Emails - PRO */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  Emails Adicionais
+                  <Badge variant="secondary" className="text-xs">
+                    PRO
+                  </Badge>
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    placeholder="email@exemplo.com"
+                    value={newEmail}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setNewEmail(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newEmail.trim()) {
+                        e.preventDefault();
+                        if (!settings.notifyEmails.includes(newEmail.trim())) {
+                          setSettings({
+                            ...settings,
+                            notifyEmails: [...settings.notifyEmails, newEmail.trim()],
+                          });
+                        }
+                        setNewEmail("");
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (newEmail.trim() && !settings.notifyEmails.includes(newEmail.trim())) {
+                        setSettings({
+                          ...settings,
+                          notifyEmails: [...settings.notifyEmails, newEmail.trim()],
+                        });
+                        setNewEmail("");
+                      }
+                    }}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                {settings.notifyEmails.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {settings.notifyEmails.map((email, index) => (
+                      <Badge key={index} variant="secondary" className="gap-1">
+                        {email}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSettings({
+                              ...settings,
+                              notifyEmails: settings.notifyEmails.filter((_, i) => i !== index),
+                            });
+                          }}
+                          className="ml-1 hover:text-destructive"
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Notifique múltiplas pessoas a cada nova resposta (máx. 10 emails)
+                </p>
+              </div>
             </div>
+
             <Separator />
+
+            {/* Webhook */}
             <div className="space-y-2">
               <Label>{t("webhookUrl")}</Label>
               <Input
@@ -660,6 +753,135 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
                 }
               />
               <p className="text-xs text-muted-foreground">{t("webhookUrlHelp")}</p>
+            </div>
+
+            <Separator />
+
+            {/* Anti-spam / CAPTCHA - PRO */}
+            <div className="space-y-4">
+              <h3 className="font-semibold flex items-center gap-2">
+                🛡️ Anti-spam
+                <Badge variant="secondary" className="text-xs">
+                  PRO
+                </Badge>
+              </h3>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Habilitar CAPTCHA</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Proteja seu formulário contra spam com verificação humana
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.captchaEnabled}
+                  onCheckedChange={(checked: boolean) =>
+                    setSettings({ ...settings, captchaEnabled: checked })
+                  }
+                />
+              </div>
+
+              {settings.captchaEnabled && (
+                <div className="space-y-4 pl-4 border-l-2 border-border">
+                  <div className="space-y-2">
+                    <Label>Provider</Label>
+                    <Select
+                      value={settings.captchaProvider}
+                      onValueChange={(value: string) =>
+                        setSettings({ ...settings, captchaProvider: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o provider" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="turnstile">
+                          Cloudflare Turnstile (Recomendado)
+                        </SelectItem>
+                        <SelectItem value="hcaptcha">hCaptcha</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Site Key</Label>
+                    <Input
+                      placeholder="Site key do seu CAPTCHA"
+                      value={settings.captchaSiteKey}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setSettings({ ...settings, captchaSiteKey: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Secret Key</Label>
+                    <Input
+                      type="password"
+                      placeholder="Secret key do seu CAPTCHA"
+                      value={settings.captchaSecretKey}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setSettings({ ...settings, captchaSecretKey: e.target.value })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Obtenha suas chaves em{" "}
+                      {settings.captchaProvider === "hcaptcha" ? (
+                        <a
+                          href="https://dashboard.hcaptcha.com"
+                          target="_blank"
+                          rel="noopener"
+                          className="text-primary hover:underline"
+                        >
+                          dashboard.hcaptcha.com
+                        </a>
+                      ) : (
+                        <a
+                          href="https://dash.cloudflare.com/turnstile"
+                          target="_blank"
+                          rel="noopener"
+                          className="text-primary hover:underline"
+                        >
+                          dash.cloudflare.com/turnstile
+                        </a>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* Branding - PRO */}
+            <div className="space-y-4">
+              <h3 className="font-semibold flex items-center gap-2">
+                🎨 Aparência
+                <Badge variant="secondary" className="text-xs">
+                  PRO
+                </Badge>
+              </h3>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Remover Logo do Topo</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Oculta o logo e nome do Submitin no topo do formulário público
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.hideBranding}
+                  onCheckedChange={(checked: boolean) =>
+                    setSettings({ ...settings, hideBranding: checked })
+                  }
+                />
+              </div>
+
+              {/* Theme Editor */}
+              <div className="mt-4">
+                <ThemeEditor
+                  theme={settings.customTheme}
+                  onChange={(theme) => setSettings({ ...settings, customTheme: theme })}
+                  isPro={true}
+                  disabled={false}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -681,7 +903,7 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
             </DialogTitle>
             <DialogDescription>{t("shareDesc")}</DialogDescription>
           </DialogHeader>
-          
+
           {!form.published && (
             <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-sm text-destructive">
               ⚠️ {t("notPublishedWarning")}
@@ -696,11 +918,7 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
                 <Label className="font-semibold">{t("directLink")}</Label>
               </div>
               <div className="flex gap-2">
-                <Input
-                  readOnly
-                  value={getPublicUrl()}
-                  className="font-mono text-sm bg-muted"
-                />
+                <Input readOnly value={getPublicUrl()} className="font-mono text-sm bg-muted" />
                 <Button
                   variant="outline"
                   size="icon"
@@ -730,7 +948,7 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
                 <Label className="font-semibold">{t("embed")}</Label>
               </div>
               <p className="text-sm text-muted-foreground">{t("embedDesc")}</p>
-              
+
               <div className="flex gap-2">
                 <Label className="text-sm text-muted-foreground">{t("embedSize")}</Label>
                 <div className="flex gap-1">
@@ -742,7 +960,11 @@ export function FormBuilder({ form: initialForm }: FormBuilderProps) {
                       onClick={() => setEmbedSize(size)}
                       className="text-xs"
                     >
-                      {size === "small" ? t("embedSmall") : size === "medium" ? t("embedMedium") : t("embedLarge")}
+                      {size === "small"
+                        ? t("embedSmall")
+                        : size === "medium"
+                          ? t("embedMedium")
+                          : t("embedLarge")}
                     </Button>
                   ))}
                 </div>

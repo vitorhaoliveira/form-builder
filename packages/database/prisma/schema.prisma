@@ -135,12 +135,27 @@ model FieldValue {
 
 model FormSettings {
   id          String  @id @default(cuid())
-  notifyEmail String?
-  webhookUrl  String?
+
+  // Notificações
+  notifyEmail  String?
+  notifyEmails String[] @default([])
+  webhookUrl   String?
+
+  // PRO: Anti-spam / CAPTCHA
+  captchaEnabled   Boolean @default(false)
+  captchaProvider  String? // "turnstile" | "hcaptcha"
+  captchaSiteKey   String?
+  captchaSecretKey String?
+
+  // PRO: Branding
+  hideBranding Boolean @default(false)
+
+  // PRO: Custom Theme (JSON com cores personalizadas)
+  // { primaryColor, backgroundColor, cardBackground, textColor, accentColor, borderRadius }
+  customTheme Json?
 
   formId String @unique
   form   Form   @relation(fields: [formId], references: [id], onDelete: Cascade)
 
   @@map("form_settings")
 }
-
