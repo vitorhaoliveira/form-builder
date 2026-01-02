@@ -13,9 +13,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@submitin/ui/components/dropdown-menu";
-import { FileText, User, LogOut, Plus, LayoutDashboard } from "lucide-react";
+import { FileText, User, LogOut, Plus, LayoutDashboard, CreditCard } from "lucide-react";
 import { cn } from "@submitin/ui/lib/utils";
 import { LanguageSwitcher } from "./language-switcher";
+import { ProBadge } from "./pro-badge";
 
 interface DashboardNavProps {
   user: {
@@ -42,6 +43,12 @@ export function DashboardNav({ user }: DashboardNavProps) {
       label: t("nav.forms"),
       icon: FileText,
       active: pathname.startsWith("/dashboard/forms"),
+    },
+    {
+      href: "/dashboard/billing",
+      label: "Billing",
+      icon: CreditCard,
+      active: pathname.startsWith("/dashboard/billing"),
     },
   ];
 
@@ -77,7 +84,7 @@ export function DashboardNav({ user }: DashboardNavProps) {
 
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
-          
+
           <Link href="/dashboard/forms/new">
             <Button size="sm" className="gap-2">
               <Plus className="w-4 h-4" />
@@ -96,7 +103,10 @@ export function DashboardNav({ user }: DashboardNavProps) {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div className="flex flex-col">
-                  <span className="font-medium">{user.name || user.email}</span>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-medium">{user.name || user.email}</span>
+                    <ProBadge />
+                  </div>
                   <span className="text-xs text-muted-foreground truncate">
                     {user.email}
                   </span>

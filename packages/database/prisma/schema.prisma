@@ -19,9 +19,17 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Subscription
+  plan                String   @default("free") // "free" | "pro"
+  stripeCustomerId    String?  @unique
+  stripeSubscriptionId String? @unique
+  stripePriceId       String?
+  stripeCurrentPeriodEnd DateTime?
+
   accounts Account[]
   sessions Session[]
   forms    Form[]
+  subscriptions Subscription[]
 
   @@map("users")
 }
@@ -158,4 +166,51 @@ model FormSettings {
   form   Form   @relation(fields: [formId], references: [id], onDelete: Cascade)
 
   @@map("form_settings")
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Stripe data
+  stripeSubscriptionId String   @unique
+  stripeCustomerId     String
+  stripePriceId        String
+  stripeCurrentPeriodStart DateTime
+  stripeCurrentPeriodEnd   DateTime
+
+  // Subscription details
+  status    String // "active" | "canceled" | "incomplete" | "incomplete_expired" | "past_due" | "trialing" | "unpaid"
+  plan      String // "pro"
+
+  cancelAtPeriodEnd Boolean @default(false)
+  canceledAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([stripeSubscriptionId])
+  @@map("subscriptions")
+}
+
+model PaymentHistory {
+  id        String   @id @default(cuid())
+  userId    String
+
+  // Stripe data
+  stripePaymentIntentId String   @unique
+  stripeInvoiceId       String?
+
+  // Payment details
+  amount        Int      // in cents
+  currency      String   @default("usd")
+  status        String   // "succeeded" | "pending" | "failed"
+  description   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("payment_history")
 }

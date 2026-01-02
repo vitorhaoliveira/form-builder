@@ -1,0 +1,270 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { Button } from "@submitin/ui/components/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@submitin/ui/components/card";
+import { Badge } from "@submitin/ui/components/badge";
+import { Loader2, Check, Crown, Sparkles } from "lucide-react";
+import { PLANS } from "@/lib/stripe";
+
+interface UserSubscription {
+  plan: string;
+  stripeCurrentPeriodEnd: string | null;
+  stripeCustomerId: string | null;
+}
+
+export default function BillingPage() {
+  const { data: session } = useSession();
+  const [loading, setLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [userPlan, setUserPlan] = useState<UserSubscription | null>(null);
+
+  useEffect(() => {
+    // Fetch user subscription data
+    const fetchSubscription = async () => {
+      try {
+        const response = await fetch("/api/user/subscription");
+        if (response.ok) {
+          const data = await response.json();
+          setUserPlan(data);
+        }
+      } catch (error) {
+        console.error("Error fetching subscription:", error);
+      }
+    };
+
+    if (session?.user) {
+      fetchSubscription();
+    }
+  }, [session]);
+
+  const handleUpgrade = async (priceId: string) => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/billing/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priceId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        console.error(data.error || "Erro ao criar sessão de checkout");
+      }
+    } catch (error) {
+      console.error("Error creating checkout:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      setPortalLoading(true);
+      const response = await fetch("/api/billing/portal", {
+        method: "POST",
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        console.error(data.error || "Erro ao abrir portal de cobrança");
+      }
+    } catch (error) {
+      console.error("Error opening portal:", error);
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  const isPro = userPlan?.plan === "pro";
+  const hasStripeCustomer = !!userPlan?.stripeCustomerId;
+
+  return (
+    <div className="container max-w-6xl py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Planos e Preços</h1>
+        <p className="text-muted-foreground">
+          Escolha o plano ideal para suas necessidades
+        </p>
+      </div>
+
+      {/* Current Plan Badge */}
+      {isPro && userPlan?.stripeCurrentPeriodEnd && (
+        <div className="mb-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <div className="flex items-center gap-2 mb-1">
+            <Crown className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
+            <span className="font-semibold text-yellow-900 dark:text-yellow-100">
+              Plano Pro Ativo
+            </span>
+          </div>
+          <p className="text-sm text-yellow-800 dark:text-yellow-200">
+            Renovação em:{" "}
+            {new Date(userPlan.stripeCurrentPeriodEnd).toLocaleDateString("pt-BR", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            })}
+          </p>
+        </div>
+      )}
+
+      <div className="grid md:grid-cols-2 gap-6 mb-8">
+        {/* Free Plan */}
+        <Card className={!isPro ? "border-primary shadow-lg" : ""}>
+          <CardHeader>
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <CardTitle className="text-2xl">{PLANS.free.name}</CardTitle>
+                <CardDescription>Perfeito para começar</CardDescription>
+              </div>
+              {!isPro && <Badge variant="default">Plano Atual</Badge>}
+            </div>
+            <div className="mt-4">
+              <span className="text-4xl font-bold">${PLANS.free.price}</span>
+              <span className="text-muted-foreground ml-2">/ mês</span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3">
+              {PLANS.free.features.map((feature, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+                  <span className="text-sm">{feature}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+          <CardFooter>
+            <Button variant="outline" className="w-full" disabled>
+              Plano Gratuito
+            </Button>
+          </CardFooter>
+        </Card>
+
+        {/* Pro Plan */}
+        <Card className={isPro ? "border-yellow-500 shadow-lg" : "border-primary"}>
+          <CardHeader>
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  {PLANS.pro.name}
+                  <Sparkles className="h-5 w-5 text-yellow-500" />
+                </CardTitle>
+                <CardDescription>Para profissionais e empresas</CardDescription>
+              </div>
+              {isPro && <Badge variant="default" className="bg-yellow-500">Plano Atual</Badge>}
+            </div>
+            <div className="mt-4">
+              <span className="text-4xl font-bold">${PLANS.pro.price}</span>
+              <span className="text-muted-foreground ml-2">/ mês</span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3">
+              {PLANS.pro.features.map((feature, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+                  <span className="text-sm font-medium">{feature}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+          <CardFooter>
+            {isPro ? (
+              <Button
+                onClick={handleManageSubscription}
+                disabled={portalLoading}
+                className="w-full"
+                variant="outline"
+              >
+                {portalLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Gerenciar Assinatura
+              </Button>
+            ) : (
+              <Button
+                onClick={() => handleUpgrade(PLANS.pro.stripePriceId)}
+                disabled={loading || !PLANS.pro.stripePriceId}
+                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+              >
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Upgrade para Pro
+              </Button>
+            )}
+          </CardFooter>
+        </Card>
+      </div>
+
+      {/* Manage Subscription Button for Pro Users */}
+      {isPro && hasStripeCustomer && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Gerenciar Assinatura</CardTitle>
+            <CardDescription>
+              Atualize seu método de pagamento, veja histórico de faturas ou cancele sua assinatura
+            </CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Button
+              onClick={handleManageSubscription}
+              disabled={portalLoading}
+              variant="outline"
+            >
+              {portalLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Abrir Portal de Cobrança
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+
+      {/* FAQ Section */}
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold mb-6">Perguntas Frequentes</h2>
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Posso cancelar a qualquer momento?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Sim! Você pode cancelar sua assinatura a qualquer momento através do portal de cobrança.
+                Você continuará tendo acesso aos recursos Pro até o final do período pago.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">O que acontece se eu cancelar?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Ao cancelar, você voltará para o plano Free no final do período atual.
+                Seus formulários e respostas serão mantidos, mas recursos Pro como tema personalizado
+                e remoção de branding serão desativados.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Como funcionam as respostas ilimitadas?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                No plano Free, você tem um limite de 100 respostas por mês. No plano Pro,
+                você pode receber quantas respostas quiser, sem limites.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
