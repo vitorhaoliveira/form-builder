@@ -124,3 +124,11 @@ export async function createCheckoutSession({
 
   return session.url || "";
 }
+
+// Debug logging (remove in production)
+if (typeof window === 'undefined') {
+  console.log('🔍 Stripe Config (Server-side):');
+  console.log('  → STRIPE_PRO_PRICE_ID:', STRIPE_PRO_PRICE_ID || '(empty)');
+  console.log('  → process.env.STRIPE_PRO_PRICE_ID:', process.env.STRIPE_PRO_PRICE_ID || '(empty)');
+  console.log('  → process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID:', process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID || '(empty)');
+}
