@@ -6,6 +6,7 @@ import { defaultLocale } from "@/i18n/config";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { Toaster } from "@/components/toaster";
+import { SessionProvider } from "@/components/session-provider";
 
 export const metadata: Metadata = {
   title: {
@@ -37,7 +38,7 @@ export default async function RootLayout({
   const cookieStore = await cookies();
   const localeCookie = cookieStore.get("NEXT_LOCALE")?.value;
   const locale = (localeCookie === "pt" || localeCookie === "en" ? localeCookie : defaultLocale) as typeof defaultLocale;
-  
+
   // Load messages for the locale
   const messages = (await import(`@/messages/${locale}.json`)).default;
 
@@ -46,12 +47,13 @@ export default async function RootLayout({
       <body
         className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased min-h-screen bg-gradient-radial`}
       >
-        <I18nProvider initialLocale={locale} initialMessages={messages}>
-          {children}
-          <Toaster />
-        </I18nProvider>
+        <SessionProvider>
+          <I18nProvider initialLocale={locale} initialMessages={messages}>
+            {children}
+            <Toaster />
+          </I18nProvider>
+        </SessionProvider>
       </body>
     </html>
   );
 }
-
