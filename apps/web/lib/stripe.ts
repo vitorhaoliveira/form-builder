@@ -15,7 +15,11 @@ export function validateStripeConfig() {
 }
 
 // Stripe product and price IDs
-export const STRIPE_PRO_PRICE_ID = process.env.STRIPE_PRO_PRICE_ID || "";
+// Use NEXT_PUBLIC_ prefix for client-side access
+export const STRIPE_PRO_PRICE_ID = 
+  process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID || 
+  process.env.STRIPE_PRO_PRICE_ID || 
+  "";
 
 // Plans configuration
 export const PLANS = {
