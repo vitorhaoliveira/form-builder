@@ -40,7 +40,7 @@ export const PLANS = {
   },
   pro: {
     name: "Pro",
-    price: 19,
+    price: 9,
     currency: "USD",
     interval: "month" as const,
     stripePriceId: STRIPE_PRO_PRICE_ID,

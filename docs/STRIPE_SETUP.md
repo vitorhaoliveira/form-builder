@@ -32,7 +32,7 @@ Este guia explica como configurar a integração com Stripe para habilitar pagam
    - **Name**: `Submitin Pro`
    - **Description**: `Plano Pro com recursos avançados`
    - **Pricing**: 
-     - **Price**: `19.00` USD
+     - **Price**: `9.00` USD
      - **Billing period**: `Monthly` (Mensal)
      - **Payment type**: `Recurring` (Recorrente)
 3. Clique em **Save product**

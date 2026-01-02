@@ -21,7 +21,7 @@ Este documento descreve as funcionalidades do plano PRO e como utilizá-las.
 - ✅ **Anti-spam com CAPTCHA** (Turnstile/hCaptcha)
 - ✅ **Suporte prioritário**
 
-**Preço:** $19/mês
+**Preço:** $9/mês
 
 ## 🚀 Como Fazer Upgrade
 
